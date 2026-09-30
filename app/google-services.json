@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "226688565474",
+    "project_id": "ecommerceapplication-bravekart",
+    "storage_bucket": "ecommerceapplication-bravekart.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:226688565474:android:730c3ecb00dcc44999debb",
+        "android_client_info": {
+          "package_name": "com.malekaltaf.ecommerce_bravekart"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBlzms97nHYI_qGMdONkqjyd3Mb4oHPl3Q"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
