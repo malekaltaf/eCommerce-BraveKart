@@ -86,7 +86,7 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         val db = FirebaseFirestore.getInstance()
-        db.collection("products").addSnapshotListener { snapshot, error ->
+        db.collection("ecommerce_items").addSnapshotListener { snapshot, error ->
             isLoading = false
             if (error != null) {
                 Toast.makeText(context, "Error fetching products.", Toast.LENGTH_SHORT).show()
@@ -94,9 +94,9 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
             }
             if (snapshot != null) {
                 val fetchedProducts = snapshot.documents.mapNotNull { doc ->
-                    val name = doc.getString("name") ?: ""
-                    val desc = doc.getString("description") ?: ""
-                    val price = doc.getDouble("price") ?: 0.0
+                    val name = doc.getString("product_name") ?: ""
+                    val desc = doc.getString("product_description") ?: ""
+                    val price = doc.getDouble("product_price") ?: doc.getLong("product_price")?.toDouble() ?: 0.0
                     Product(doc.id, name, desc, price)
                 }
                 products = fetchedProducts
