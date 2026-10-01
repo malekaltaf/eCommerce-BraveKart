@@ -2,6 +2,7 @@ package com.malekaltaf.ecommerce_bravekart
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -89,7 +90,8 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
         db.collection("ecommerce_items").addSnapshotListener { snapshot, error ->
             isLoading = false
             if (error != null) {
-                Toast.makeText(context, "Error fetching products.", Toast.LENGTH_SHORT).show()
+                Log.e("CatalogScreen", "Error fetching products", error)
+                Toast.makeText(context, "Error fetching products: ${error.message}", Toast.LENGTH_LONG).show()
                 return@addSnapshotListener
             }
             if (snapshot != null) {
@@ -187,8 +189,12 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
         if (userId != null) {
             FirebaseFirestore.getInstance().collection("orders")
                 .whereEqualTo("userId", userId)
-                .addSnapshotListener { snapshot, _ ->
+                .addSnapshotListener { snapshot, error ->
                     isLoading = false
+                    if (error != null) {
+                        Log.e("OrdersScreen", "Error fetching orders", error)
+                        return@addSnapshotListener
+                    }
                     if (snapshot != null) {
                         val fetchedOrders = snapshot.documents.mapNotNull { it.data }
                         // Sort locally by timestamp descending
@@ -281,6 +287,9 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                             }
                         }
                     }
+                }
+                .addOnFailureListener { error ->
+                    Log.e("ProfileScreen", "Error fetching profile", error)
                 }
         }
     }
