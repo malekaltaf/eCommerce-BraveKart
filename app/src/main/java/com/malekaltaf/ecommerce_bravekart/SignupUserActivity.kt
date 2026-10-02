@@ -25,6 +25,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -183,6 +184,13 @@ fun SignupScreen(modifier: Modifier = Modifier) {
                             .addOnCompleteListener { task ->
                                 if (task.isSuccessful) {
                                     val user = auth.currentUser
+                                    
+                                    // Set Display Name in Firebase Auth Profile
+                                    val profileUpdates = UserProfileChangeRequest.Builder()
+                                        .setDisplayName(name)
+                                        .build()
+                                    user?.updateProfile(profileUpdates)
+
                                     val db = FirebaseFirestore.getInstance()
                                     val userData = hashMapOf(
                                         "name" to name,

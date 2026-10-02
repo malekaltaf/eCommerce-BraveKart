@@ -272,11 +272,16 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
 fun ProfileScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
-    var userName by remember { mutableStateOf("BraveKart") }
+    var userName by remember { mutableStateOf("Username") }
+    var userEmail by remember { mutableStateOf("") }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         val user = FirebaseAuth.getInstance().currentUser
+        user?.email?.let { userEmail = it }
+        user?.displayName?.let {
+            if (it.isNotBlank()) userName = it
+        }
         user?.uid?.let { uid ->
             FirebaseFirestore.getInstance().collection("users").document(uid).get()
                 .addOnSuccessListener { document ->
@@ -311,10 +316,19 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
         )
         
         Text(
-            text = "Welcome to $userName!",
+            text = "Welcome, $userName!",
             style = MaterialTheme.typography.headlineMedium,
             modifier = Modifier.padding(top = 16.dp)
         )
+        
+        if (userEmail.isNotBlank()) {
+            Text(
+                text = userEmail,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 8.dp)
+            )
+        }
 
         Spacer(modifier = Modifier.weight(1f))
 

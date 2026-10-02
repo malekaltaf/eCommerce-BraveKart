@@ -8,6 +8,9 @@ Welcome to **BraveKart**, an Android eCommerce application built natively with K
   * Users collections to store profile information.
   * Realtime `products` catalog fetching.
   * Realtime `orders` tracking that dynamically updates UI based on order status (Pending, Approved, Delivered).
+* **Profile Enhancements:** 
+  * Displays user's name fetched from Firebase Auth Display Profile.
+  * Displays user's logged-in email address.
 * **Jetpack Compose UI:** Modern, responsive UI with Material 3 design principles.
 * **State Management & Coroutines:** Asynchronous database calls, loading spinners, and toast notifications for seamless UX.
 * **Bottom Navigation:** Scaffold containing three main tabs:
