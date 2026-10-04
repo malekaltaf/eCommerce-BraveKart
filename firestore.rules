@@ -1,0 +1,36 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -------------------------------------------------------------------------
+    //  USERS COLLECTION
+    // -------------------------------------------------------------------------
+    // The app uses a custom authentication system (storing users in Firestore).
+    // Therefore, unauthenticated users need to be able to query emails and create accounts.
+    match /users/{userId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true; // If they need to update profile later
+    }
+
+    // -------------------------------------------------------------------------
+    //  PRODUCTS / CATALOG COLLECTION
+    // -------------------------------------------------------------------------
+    // Anyone using the app needs to be able to view the products.
+    match /ecommerce_items/{itemId} {
+      allow read: if true;
+      allow write: if false; // Products should ideally be managed from the console or admin app
+    }
+
+    // -------------------------------------------------------------------------
+    //  ORDERS COLLECTION
+    // -------------------------------------------------------------------------
+    // Anyone using the app needs to be able to place an order and see their orders.
+    match /orders/{orderId} {
+      allow read: if true;
+      allow create: if true;
+      allow update: if true;
+    }
+  }
+}
