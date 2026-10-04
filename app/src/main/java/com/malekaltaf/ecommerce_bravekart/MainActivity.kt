@@ -58,6 +58,9 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -69,7 +72,14 @@ import com.malekaltaf.ecommerce_bravekart.ui.theme.ECommerceBraveKartTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
-data class Product(val id: String = "", val name: String = "", val description: String = "", val price: Double = 0.0)
+data class Product(
+    val id: String = "",
+    val name: String = "",
+    val description: String = "",
+    val price: Double = 0.0,
+    val imageUrl: String = "",
+    val stock: Int = 0
+)
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -159,10 +169,12 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
             }
             if (snapshot != null) {
                 val fetchedProducts = snapshot.documents.mapNotNull { doc ->
-                    val name = doc.getString("product_name") ?: ""
-                    val desc = doc.getString("product_description") ?: ""
-                    val price = doc.getDouble("product_price") ?: doc.getLong("product_price")?.toDouble() ?: 0.0
-                    Product(doc.id, name, desc, price)
+                    val name = doc.getString("name") ?: ""
+                    val desc = doc.getString("description") ?: ""
+                    val price = doc.getDouble("price") ?: doc.getLong("price")?.toDouble() ?: 0.0
+                    val imageUrl = doc.getString("imageUrl") ?: ""
+                    val stock = doc.getLong("stock")?.toInt() ?: 0
+                    Product(doc.id, name, desc, price, imageUrl, stock)
                 }
                 products = fetchedProducts
             }
@@ -232,6 +244,18 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
+                            if (product.imageUrl.isNotEmpty()) {
+                                AsyncImage(
+                                    model = product.imageUrl,
+                                    contentDescription = product.name,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(180.dp)
+                                        .clip(RoundedCornerShape(16.dp)),
+                                    contentScale = ContentScale.Crop
+                                )
+                                Spacer(modifier = Modifier.height(16.dp))
+                            }
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -249,6 +273,21 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    if (product.stock > 0) {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "${product.stock} in stock",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    } else {
+                                        Spacer(modifier = Modifier.height(8.dp))
+                                        Text(
+                                            text = "Out of stock",
+                                            style = MaterialTheme.typography.labelMedium,
+                                            color = MaterialTheme.colorScheme.error
+                                        )
+                                    }
                                 }
                                 Spacer(modifier = Modifier.width(12.dp))
                                 Surface(
@@ -295,7 +334,7 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                                 },
                                 modifier = Modifier.fillMaxWidth(),
                                 shape = RoundedCornerShape(16.dp),
-                                enabled = isOrdering != product.id
+                                enabled = isOrdering != product.id && product.stock > 0
                             ) {
                                 if (isOrdering == product.id) {
                                     CircularProgressIndicator(
@@ -310,7 +349,7 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                                         modifier = Modifier.size(18.dp)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text("Buy Now")
+                                    Text(if (product.stock > 0) "Buy Now" else "Out of Stock")
                                 }
                             }
                         }
