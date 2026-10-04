@@ -59,9 +59,6 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthUserCollisionException
-import com.google.firebase.auth.UserProfileChangeRequest
 import com.google.firebase.firestore.FirebaseFirestore
 import com.malekaltaf.ecommerce_bravekart.ui.theme.ECommerceBraveKartTheme
 
@@ -310,45 +307,42 @@ fun SignupScreen(modifier: Modifier = Modifier) {
                     else -> {
                         errorMessage = null
                         isLoading = true
-                        val auth = FirebaseAuth.getInstance()
-                        auth.createUserWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
-                                if (task.isSuccessful) {
-                                    val user = auth.currentUser
-                                    
-                                    // Set Display Name in Firebase Auth Profile
-                                    val profileUpdates = UserProfileChangeRequest.Builder()
-                                        .setDisplayName(name)
-                                        .build()
-                                    user?.updateProfile(profileUpdates)
-
-                                    val db = FirebaseFirestore.getInstance()
+                        val db = FirebaseFirestore.getInstance()
+                        db.collection("users").whereEqualTo("email", email).get()
+                            .addOnSuccessListener { documents ->
+                                if (documents.isEmpty) {
+                                    val docRef = db.collection("users").document()
                                     val userData = hashMapOf(
+                                        "id" to docRef.id,
                                         "name" to name,
                                         "email" to email,
+                                        "password" to SessionManager.hashPassword(password),
                                         "gender" to gender,
                                         "phone" to phone,
                                         "userrole" to "user"
                                     )
-                                    user?.uid?.let { uid ->
-                                        db.collection("users").document(uid).set(userData)
-                                    }
-                                    
-                                    isLoading = false
-                                    Toast.makeText(context, "Yay! You're officially in! \uD83C\uDF8A", Toast.LENGTH_SHORT).show()
-                                    context.startActivity(Intent(context, LoginUserActivity::class.java))
-                                    (context as? ComponentActivity)?.finish()
+                                    docRef.set(userData)
+                                        .addOnSuccessListener {
+                                            isLoading = false
+                                            Toast.makeText(context, "Yay! You're officially in! \uD83C\uDF8A", Toast.LENGTH_SHORT).show()
+                                            context.startActivity(Intent(context, LoginUserActivity::class.java))
+                                            (context as? ComponentActivity)?.finish()
+                                        }
+                                        .addOnFailureListener { e ->
+                                            isLoading = false
+                                            errorMessage = "Oops, something went wrong: ${e.message} \uD83D\uDE22"
+                                            Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
+                                        }
                                 } else {
                                     isLoading = false
-                                    val exception = task.exception
-                                    val errorMsg = if (exception is FirebaseAuthUserCollisionException) {
-                                        "This email is already registered! Try logging in instead. \uD83D\uDE05"
-                                    } else {
-                                        "Oops, something went wrong: ${exception?.message} \uD83D\uDE22"
-                                    }
-                                    errorMessage = errorMsg
-                                    Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
+                                    errorMessage = "This email is already registered! Try logging in instead. \uD83D\uDE05"
+                                    Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                                 }
+                            }
+                            .addOnFailureListener { e ->
+                                isLoading = false
+                                errorMessage = "Oops, something went wrong: ${e.message} \uD83D\uDE22"
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
                             }
                     }
                 }

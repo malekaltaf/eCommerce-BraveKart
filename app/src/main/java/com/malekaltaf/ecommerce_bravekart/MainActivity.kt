@@ -58,14 +58,13 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.firestore.FirebaseFirestore
 import com.malekaltaf.ecommerce_bravekart.ui.theme.ECommerceBraveKartTheme
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -76,8 +75,8 @@ class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
-        val auth = FirebaseAuth.getInstance()
-        if (auth.currentUser == null) {
+        val session = SessionManager(this)
+        if (!session.isLoggedIn()) {
             startActivity(Intent(this, LoginUserActivity::class.java))
             finish()
             return
@@ -271,7 +270,8 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                             FilledTonalButton(
                                 onClick = {
                                     isOrdering = product.id
-                                    val userId = FirebaseAuth.getInstance().currentUser?.uid
+                                    val session = SessionManager(context)
+                                    val userId = session.getUserId()
                                     if (userId != null) {
                                         val db = FirebaseFirestore.getInstance()
                                         val order = hashMapOf(
@@ -323,6 +323,7 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun OrdersScreen(modifier: Modifier = Modifier) {
+    val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
     var orders by remember {
         mutableStateOf<List<Map<String, Any>>>(
@@ -346,7 +347,8 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
 
     LaunchedEffect(Unit) {
         if (isPreview) return@LaunchedEffect
-        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        val session = SessionManager(context)
+        val userId = session.getUserId()
         if (userId != null) {
             FirebaseFirestore.getInstance().collection("orders")
                 .whereEqualTo("userId", userId)
@@ -503,24 +505,23 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val isPreview = LocalInspectionMode.current
     var isLoading by remember { mutableStateOf(false) }
-    var userName by remember { mutableStateOf(if (isPreview) "Alex Smith" else "Username") }
-    var userEmail by remember { mutableStateOf(if (isPreview) "alex.smith@example.com" else "") }
+    
+    val session = remember { SessionManager(context) }
+    var userName by remember { mutableStateOf(if (isPreview) "Alex Smith" else session.getUserName()) }
+    var userEmail by remember { mutableStateOf(if (isPreview) "alex.smith@example.com" else session.getUserEmail()) }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
         if (isPreview) return@LaunchedEffect
-        val user = FirebaseAuth.getInstance().currentUser
-        user?.email?.let { userEmail = it }
-        user?.displayName?.let {
-            if (it.isNotBlank()) userName = it
-        }
-        user?.uid?.let { uid ->
-            FirebaseFirestore.getInstance().collection("users").document(uid).get()
+        val userId = session.getUserId()
+        if (userId != null) {
+            FirebaseFirestore.getInstance().collection("users").document(userId).get()
                 .addOnSuccessListener { document ->
                     if (document != null && document.exists()) {
                         document.getString("name")?.let { fetchedName ->
                             if (fetchedName.isNotBlank()) {
                                 userName = fetchedName
+                                session.saveUserSession(userId, userEmail, userName)
                             }
                         }
                     }
@@ -624,7 +625,7 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                 isLoading = true
                 coroutineScope.launch {
                     delay(800) 
-                    FirebaseAuth.getInstance().signOut()
+                    session.logout()
                     isLoading = false
                     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
                     context.startActivity(Intent(context, LoginUserActivity::class.java))

@@ -51,9 +51,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.google.firebase.auth.FirebaseAuth
-import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
-import com.google.firebase.auth.FirebaseAuthInvalidUserException
+import com.google.firebase.firestore.FirebaseFirestore
 import com.malekaltaf.ecommerce_bravekart.ui.theme.ECommerceBraveKartTheme
 
 class LoginUserActivity : ComponentActivity() {
@@ -207,32 +205,43 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                     else -> {
                         errorMessage = null
                         isLoading = true
-                        val auth = FirebaseAuth.getInstance()
-                        auth.signInWithEmailAndPassword(email, password)
-                            .addOnCompleteListener { task ->
+                        val db = FirebaseFirestore.getInstance()
+                        db.collection("users").whereEqualTo("email", email).get()
+                            .addOnSuccessListener { documents ->
                                 isLoading = false
-                                if (task.isSuccessful) {
-                                    Toast.makeText(context, "Welcome back to BraveKart! \uD83C\uDF89", Toast.LENGTH_SHORT).show()
-                                    context.startActivity(Intent(context, MainActivity::class.java))
+                                if (documents.isEmpty) {
+                                    val errorMsg = "Looks like you don't have an account yet! Let's get you signed up. \uD83D\uDE80"
+                                    errorMessage = errorMsg
+                                    Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
+                                    context.startActivity(Intent(context, SignupUserActivity::class.java))
                                     (context as? ComponentActivity)?.finish()
                                 } else {
-                                    val exception = task.exception
-                                    if (exception is FirebaseAuthInvalidUserException) {
-                                        val errorMsg = "Looks like you don't have an account yet! Let's get you signed up. \uD83D\uDE80"
-                                        errorMessage = errorMsg
-                                        Toast.makeText(context, errorMsg, Toast.LENGTH_LONG).show()
-                                        context.startActivity(Intent(context, SignupUserActivity::class.java))
+                                    val userDoc = documents.documents[0]
+                                    val storedPassword = userDoc.getString("password")
+                                    val hashedInput = SessionManager.hashPassword(password)
+                                    
+                                    if (storedPassword == hashedInput) {
+                                        val session = SessionManager(context)
+                                        session.saveUserSession(
+                                            userId = userDoc.id,
+                                            email = userDoc.getString("email") ?: "",
+                                            name = userDoc.getString("name") ?: "User"
+                                        )
+                                        Toast.makeText(context, "Welcome back to BraveKart! \uD83C\uDF89", Toast.LENGTH_SHORT).show()
+                                        context.startActivity(Intent(context, MainActivity::class.java))
                                         (context as? ComponentActivity)?.finish()
-                                    } else if (exception is FirebaseAuthInvalidCredentialsException) {
-                                        val errorMsg = "Oops! Password doesn't match or email is incorrect. Please try again! \uD83E\uDD13"
-                                        errorMessage = errorMsg
-                                        Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                                     } else {
-                                        val errorMsg = "Uh oh, that didn't work. Maybe double check your credentials? \uD83E\uDD37\u200D\u2642\uFE0F"
+                                        val errorMsg = "Oops! Password doesn't match or email is incorrect. Please try again! \uD83E\uDD13"
                                         errorMessage = errorMsg
                                         Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                                     }
                                 }
+                            }
+                            .addOnFailureListener { e ->
+                                isLoading = false
+                                val errorMsg = "Uh oh, that didn't work. Maybe double check your credentials? \uD83E\uDD37\u200D\u2642\uFE0F"
+                                errorMessage = errorMsg
+                                Toast.makeText(context, errorMsg, Toast.LENGTH_SHORT).show()
                             }
                     }
                 }
