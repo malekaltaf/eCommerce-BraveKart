@@ -7,20 +7,62 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
+import androidx.compose.material.icons.filled.AddShoppingCart
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.LocalShipping
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.filled.VerifiedUser
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalInspectionMode
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
@@ -54,17 +96,30 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     var selectedItem by remember { mutableIntStateOf(0) }
     val items = listOf("Catalog", "Orders", "Profile")
-    val icons = listOf(Icons.Default.ShoppingCart, Icons.AutoMirrored.Filled.List, Icons.Default.Person)
+    val icons = listOf(Icons.Default.ShoppingCart, Icons.AutoMirrored.Filled.ReceiptLong, Icons.Default.Person)
 
     Scaffold(
         bottomBar = {
-            NavigationBar {
+            NavigationBar(
+                containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                tonalElevation = 3.dp
+            ) {
                 items.forEachIndexed { index, item ->
                     NavigationBarItem(
                         icon = { Icon(icons[index], contentDescription = item) },
-                        label = { Text(item) },
+                        label = {
+                            Text(
+                                text = item,
+                                style = MaterialTheme.typography.labelMedium,
+                                fontWeight = if (selectedItem == index) FontWeight.Bold else FontWeight.Normal
+                            )
+                        },
                         selected = selectedItem == index,
-                        onClick = { selectedItem = index }
+                        onClick = { selectedItem = index },
+                        colors = NavigationBarItemDefaults.colors(
+                            selectedIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                            indicatorColor = MaterialTheme.colorScheme.primaryContainer
+                        )
                     )
                 }
             }
@@ -81,11 +136,20 @@ fun MainScreen() {
 @Composable
 fun CatalogScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    var isOrdering by remember { mutableStateOf<String?>(null) } // Store product ID being ordered
-    var products by remember { mutableStateOf<List<Product>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val isPreview = LocalInspectionMode.current
+    var isOrdering by remember { mutableStateOf<String?>(null) }
+    var products by remember {
+        mutableStateOf<List<Product>>(
+            if (isPreview) listOf(
+                Product("1", "Wireless Headphones", "High quality noise-canceling headphones with spatial audio", 99.99),
+                Product("2", "Smart Watch Series X", "Track fitness, heart rate, and daily activity seamlessly", 149.99)
+            ) else emptyList()
+        )
+    }
+    var isLoading by remember { mutableStateOf(!isPreview) }
 
     LaunchedEffect(Unit) {
+        if (isPreview) return@LaunchedEffect
         val db = FirebaseFirestore.getInstance()
         db.collection("ecommerce_items").addSnapshotListener { snapshot, error ->
             isLoading = false
@@ -106,12 +170,40 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(horizontal = 16.dp)) {
-        Text(
-            text = "Shop the Catalog",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(top = 16.dp, bottom = 16.dp)
-        )
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(bottom = 16.dp)
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingBag,
+                        contentDescription = "Catalog",
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = "Explore Catalog",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Handpicked items delivered to your doorstep",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -119,25 +211,64 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
             }
         } else if (products.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("No products available.")
+                Text(
+                    text = "No products available at the moment.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(products) { product ->
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text(product.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                            Text(product.description, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.padding(vertical = 4.dp))
-                            Text("$${product.price}", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
-                            Spacer(Modifier.height(12.dp))
-                            
-                            Button(
+                        Column(modifier = Modifier.padding(20.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.Top
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = product.name,
+                                        style = MaterialTheme.typography.titleLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = product.description,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Surface(
+                                    shape = RoundedCornerShape(12.dp),
+                                    color = MaterialTheme.colorScheme.tertiaryContainer
+                                ) {
+                                    Text(
+                                        text = "$${product.price}",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(16.dp))
+
+                            FilledTonalButton(
                                 onClick = {
                                     isOrdering = product.id
                                     val userId = FirebaseAuth.getInstance().currentUser?.uid
@@ -163,11 +294,22 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
                                     }
                                 },
                                 modifier = Modifier.fillMaxWidth(),
+                                shape = RoundedCornerShape(16.dp),
                                 enabled = isOrdering != product.id
                             ) {
                                 if (isOrdering == product.id) {
-                                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.size(20.dp),
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                        strokeWidth = 2.dp
+                                    )
                                 } else {
+                                    Icon(
+                                        imageVector = Icons.Default.AddShoppingCart,
+                                        contentDescription = "Buy",
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text("Buy Now")
                                 }
                             }
@@ -181,10 +323,29 @@ fun CatalogScreen(modifier: Modifier = Modifier) {
 
 @Composable
 fun OrdersScreen(modifier: Modifier = Modifier) {
-    var orders by remember { mutableStateOf<List<Map<String, Any>>>(emptyList()) }
-    var isLoading by remember { mutableStateOf(true) }
+    val isPreview = LocalInspectionMode.current
+    var orders by remember {
+        mutableStateOf<List<Map<String, Any>>>(
+            if (isPreview) listOf(
+                mapOf(
+                    "productName" to "Wireless Headphones",
+                    "price" to 99.99,
+                    "status" to "approved",
+                    "timestamp" to System.currentTimeMillis()
+                ),
+                mapOf(
+                    "productName" to "Smart Watch Series X",
+                    "price" to 149.99,
+                    "status" to "pending",
+                    "timestamp" to System.currentTimeMillis() - 86400000
+                )
+            ) else emptyList()
+        )
+    }
+    var isLoading by remember { mutableStateOf(!isPreview) }
 
     LaunchedEffect(Unit) {
+        if (isPreview) return@LaunchedEffect
         val userId = FirebaseAuth.getInstance().currentUser?.uid
         if (userId != null) {
             FirebaseFirestore.getInstance().collection("orders")
@@ -197,7 +358,6 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
                     }
                     if (snapshot != null) {
                         val fetchedOrders = snapshot.documents.mapNotNull { it.data }
-                        // Sort locally by timestamp descending
                         orders = fetchedOrders.sortedByDescending { it["timestamp"] as? Long ?: 0L }
                     }
                 }
@@ -206,12 +366,40 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
         }
     }
 
-    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "My Orders",
-            style = MaterialTheme.typography.headlineMedium,
+    Column(modifier = modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier.padding(bottom = 16.dp)
-        )
+        ) {
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                modifier = Modifier.size(48.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ReceiptLong,
+                        contentDescription = "Orders",
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+            Spacer(modifier = Modifier.width(14.dp))
+            Column {
+                Text(
+                    text = "My Orders",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Text(
+                    text = "Track your current and previous purchases",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
         if (isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
@@ -219,45 +407,87 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
             }
         } else if (orders.isEmpty()) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("You haven't placed any orders yet.")
+                Text(
+                    text = "You haven't placed any orders yet.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         } else {
-            LazyColumn(modifier = Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxSize(),
+                contentPadding = PaddingValues(bottom = 20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
                 items(orders) { order ->
                     val productName = order["productName"] as? String ?: "Unknown Product"
                     val price = order["price"] as? Double ?: 0.0
                     val status = order["status"] as? String ?: "unknown"
                     
-                    val statusColor = when (status.lowercase()) {
-                        "approve", "approved" -> Color(0xFF4CAF50) // Green
-                        "deliver", "delivered" -> Color(0xFF2196F3) // Blue
-                        "pending" -> Color(0xFFFF9800) // Orange
-                        else -> Color.Gray
+                    val (statusColor, statusBg, statusIcon) = when (status.lowercase()) {
+                        "approve", "approved" -> Triple(Color(0xFF1B5E20), Color(0xFFD2E8D4), Icons.Default.CheckCircle)
+                        "deliver", "delivered" -> Triple(Color(0xFF0D47A1), Color(0xFFD0E1FD), Icons.Default.LocalShipping)
+                        "pending" -> Triple(Color(0xFFE65100), Color(0xFFFFE0B2), Icons.Default.Schedule)
+                        else -> Triple(MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.colorScheme.surfaceContainerHigh, Icons.Default.Schedule)
                     }
 
                     Card(
-                        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                        ),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Row(
-                            modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                            modifier = Modifier
+                                .padding(16.dp)
+                                .fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(productName, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                                Text("$$price", style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Surface(
+                                    shape = CircleShape,
+                                    color = statusBg,
+                                    modifier = Modifier.size(40.dp)
+                                ) {
+                                    Box(contentAlignment = Alignment.Center) {
+                                        Icon(
+                                            imageVector = statusIcon,
+                                            contentDescription = status,
+                                            tint = statusColor,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                    }
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = productName,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Text(
+                                        text = "$$price",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                             Surface(
-                                color = statusColor.copy(alpha = 0.1f),
-                                shape = MaterialTheme.shapes.small
+                                color = statusBg,
+                                shape = CircleShape
                             ) {
                                 Text(
                                     text = status.uppercase(),
                                     color = statusColor,
-                                    style = MaterialTheme.typography.labelSmall,
+                                    style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.Bold,
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                                 )
                             }
                         }
@@ -271,12 +501,14 @@ fun OrdersScreen(modifier: Modifier = Modifier) {
 @Composable
 fun ProfileScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val isPreview = LocalInspectionMode.current
     var isLoading by remember { mutableStateOf(false) }
-    var userName by remember { mutableStateOf("Username") }
-    var userEmail by remember { mutableStateOf("") }
+    var userName by remember { mutableStateOf(if (isPreview) "Alex Smith" else "Username") }
+    var userEmail by remember { mutableStateOf(if (isPreview) "alex.smith@example.com" else "") }
     val coroutineScope = rememberCoroutineScope()
 
     LaunchedEffect(Unit) {
+        if (isPreview) return@LaunchedEffect
         val user = FirebaseAuth.getInstance().currentUser
         user?.email?.let { userEmail = it }
         user?.displayName?.let {
@@ -306,37 +538,92 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
         verticalArrangement = Arrangement.SpaceBetween,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.weight(1f))
-        
-        Icon(
-            imageVector = Icons.Default.Person,
-            contentDescription = "User Icon",
-            modifier = Modifier.size(120.dp),
-            tint = MaterialTheme.colorScheme.primary
-        )
-        
-        Text(
-            text = "Welcome, $userName!",
-            style = MaterialTheme.typography.headlineMedium,
-            modifier = Modifier.padding(top = 16.dp)
-        )
-        
-        if (userEmail.isNotBlank()) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Expressive Avatar Badge
+            Surface(
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.size(100.dp),
+                tonalElevation = 4.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = "User Avatar",
+                        modifier = Modifier.size(56.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
-                text = userEmail,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 8.dp)
+                text = "Welcome, $userName!",
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.onSurface
             )
+
+            if (userEmail.isNotBlank()) {
+                Spacer(modifier = Modifier.height(6.dp))
+                Surface(
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.secondaryContainer
+                ) {
+                    Text(
+                        text = userEmail,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            // Expressive Account Info Card
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(20.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            imageVector = Icons.Default.VerifiedUser,
+                            contentDescription = "Verified",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column {
+                            Text(
+                                text = "BraveKart Member",
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = "Verified account with standard benefits",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
-
-        Button(
+        OutlinedButton(
             onClick = {
                 isLoading = true
                 coroutineScope.launch {
-                    delay(1000) 
+                    delay(800) 
                     FirebaseAuth.getInstance().signOut()
                     isLoading = false
                     Toast.makeText(context, "Logged out successfully", Toast.LENGTH_SHORT).show()
@@ -344,17 +631,65 @@ fun ProfileScreen(modifier: Modifier = Modifier) {
                     (context as? ComponentActivity)?.finish()
                 }
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp),
+            shape = RoundedCornerShape(28.dp),
+            colors = ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error
+            ),
             enabled = !isLoading
         ) {
             if (isLoading) {
                 CircularProgressIndicator(
                     modifier = Modifier.size(24.dp),
-                    color = MaterialTheme.colorScheme.onPrimary
+                    color = MaterialTheme.colorScheme.error,
+                    strokeWidth = 2.5.dp
                 )
             } else {
-                Text("Logout")
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ExitToApp,
+                    contentDescription = "Logout",
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Logout",
+                    style = MaterialTheme.typography.titleMedium
+                )
             }
         }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun MainScreenPreview() {
+    ECommerceBraveKartTheme {
+        MainScreen()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun CatalogScreenPreview() {
+    ECommerceBraveKartTheme {
+        CatalogScreen()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun OrdersScreenPreview() {
+    ECommerceBraveKartTheme {
+        OrdersScreen()
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun ProfileScreenPreview() {
+    ECommerceBraveKartTheme {
+        ProfileScreen()
     }
 }
