@@ -327,7 +327,8 @@ fun SignupScreen(modifier: Modifier = Modifier) {
                                         "name" to name,
                                         "email" to email,
                                         "gender" to gender,
-                                        "phone" to phone
+                                        "phone" to phone,
+                                        "userrole" to "user"
                                     )
                                     user?.uid?.let { uid ->
                                         db.collection("users").document(uid).set(userData)
