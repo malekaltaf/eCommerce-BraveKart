@@ -81,7 +81,7 @@ class SignupUserActivity : ComponentActivity() {
 @Composable
 fun SignupScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    
+
     var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -300,25 +300,34 @@ fun SignupScreen(modifier: Modifier = Modifier) {
                 when {
                     name.isBlank() -> errorMessage = "Hey! We'd love to know what to call you! \uD83D\uDC4B"
                     email.isBlank() -> errorMessage = "Looks like you forgot your email address! \uD83D\uDCE7"
+                    !android.util.Patterns.EMAIL_ADDRESS.matcher(email.trim()).matches() ->
+                        errorMessage = "That doesn't look like a valid email address. \uD83D\uDCE7"
                     password.isBlank() -> errorMessage = "A secret password is required to enter the club. \uD83D\uDD11"
                     password.length < 6 -> errorMessage = "Make it a bit longer! 6 characters minimum. \uD83D\uDE09"
                     gender.isBlank() -> errorMessage = "Please select a gender so we can tailor your experience! \uD83D\uDE4B\u200D\u2642\uFE0F"
                     phone.isBlank() -> errorMessage = "We need your digits to keep you updated! \uD83D\uDCF1"
+                    !phone.trim().matches(Regex("^[+]?[0-9]{7,15}$")) ->
+                        errorMessage = "Please enter a valid phone number (digits only). \uD83D\uDCF1"
                     else -> {
                         errorMessage = null
                         isLoading = true
                         val db = FirebaseFirestore.getInstance()
-                        db.collection("users").whereEqualTo("email", email).get()
+                        // Normalise email to lowercase before storing/querying
+                        val normalizedEmail = email.trim().lowercase()
+                        db.collection("users").whereEqualTo("email", normalizedEmail).get()
                             .addOnSuccessListener { documents ->
                                 if (documents.isEmpty) {
                                     val docRef = db.collection("users").document()
+                                    // Generate a unique salt per user to protect against rainbow-table attacks
+                                    val salt = SessionManager.generateSalt()
                                     val userData = hashMapOf(
                                         "id" to docRef.id,
-                                        "name" to name,
-                                        "email" to email,
-                                        "password" to SessionManager.hashPassword(password),
+                                        "name" to name.trim(),
+                                        "email" to normalizedEmail,
+                                        "password" to SessionManager.hashPassword(password, salt),
+                                        "salt" to salt,
                                         "gender" to gender,
-                                        "phone" to phone,
+                                        "phone" to phone.trim(),
                                         "userrole" to "user"
                                     )
                                     docRef.set(userData)
@@ -394,7 +403,7 @@ fun SignupScreen(modifier: Modifier = Modifier) {
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(32.dp))
     }
 }

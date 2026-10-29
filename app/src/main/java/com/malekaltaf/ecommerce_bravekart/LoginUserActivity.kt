@@ -73,7 +73,7 @@ class LoginUserActivity : ComponentActivity() {
 @Composable
 fun LoginScreen(modifier: Modifier = Modifier) {
     val context = LocalContext.current
-    
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var isPasswordVisible by remember { mutableStateOf(false) }
@@ -206,7 +206,9 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                         errorMessage = null
                         isLoading = true
                         val db = FirebaseFirestore.getInstance()
-                        db.collection("users").whereEqualTo("email", email).get()
+                        // Normalise email to lowercase to match stored value
+                        val normalizedEmail = email.trim().lowercase()
+                        db.collection("users").whereEqualTo("email", normalizedEmail).get()
                             .addOnSuccessListener { documents ->
                                 isLoading = false
                                 if (documents.isEmpty) {
@@ -218,8 +220,10 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                                 } else {
                                     val userDoc = documents.documents[0]
                                     val storedPassword = userDoc.getString("password")
-                                    val hashedInput = SessionManager.hashPassword(password)
-                                    
+                                    // Retrieve the per-user salt for salted hash comparison
+                                    val storedSalt = userDoc.getString("salt") ?: ""
+                                    val hashedInput = SessionManager.hashPassword(password, storedSalt)
+
                                     if (storedPassword == hashedInput) {
                                         val session = SessionManager(context)
                                         session.saveUserSession(
@@ -237,7 +241,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                                     }
                                 }
                             }
-                            .addOnFailureListener { e ->
+                            .addOnFailureListener { _ ->
                                 isLoading = false
                                 val errorMsg = "Uh oh, that didn't work. Maybe double check your credentials? \uD83E\uDD37\u200D\u2642\uFE0F"
                                 errorMessage = errorMsg
@@ -281,7 +285,7 @@ fun LoginScreen(modifier: Modifier = Modifier) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             TextButton(
-                onClick = { 
+                onClick = {
                     context.startActivity(Intent(context, SignupUserActivity::class.java))
                     (context as? ComponentActivity)?.finish()
                 }

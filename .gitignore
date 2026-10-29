@@ -13,3 +13,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase — contains API keys; never commit this file
+google-services.json
+
+# Firebase debug logs
+firebase-debug.log
